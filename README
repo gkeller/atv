@@ -1,0 +1,26 @@
+Project Overview
+----------------
+
+This is a advanced QTableView Class where custom widgets can be placed around the table view. For example QLineEdits in a header Row for column filters. The custom widgets dynamically resize and scroll in sync with the QTableView columns/rows. This is implemented in a single class (AdvancedTableView) which extends QTableView. At the moment only header rows are supported. The aim of the project is to implement also footer rows and side columns and improve stability, performance and plattform compatibility.
+
+
+        ------------------------------------------
+        |Custom Widget|...another Widget         |  <- 0...n Header Rows
+        ------------------------------------------
+
+        ------------------------------------------
+        |QTableView   |                          |
+        ------------------------------------------
+        |             |                          |
+        ------------------------------------------
+
+
+Files
+-----
+
+AdvancedTableView Class : Project Main Class
+
+main.cpp : Contains a usage example. With the macro RUN_TESTS pre execution unit testing can be enabled/disabled
+TableModel Class : A test Model
+
+folder test : Unit Test Classes
