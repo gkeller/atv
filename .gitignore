@@ -10,3 +10,25 @@
 *.lai
 *.la
 *.a
+
+#allgemein
+.gitignore~
+/.svn/
+*/.svn/
+*.svn
+*~
+
+#qtcreator build files in project root
+advancedtableview
+*.o
+moc_*
+qrc_*
+Makefile*
+advancedtableview.pro.user
+advancedtableview.pro~
+
+#eclipse build files
+debug
+release
+.project
+.cproject
