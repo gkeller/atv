@@ -27,7 +27,7 @@
  * @class AdvancedTableView
  *
  */
-class AdvancedTableView: public QTableView
+class AdvancedTableView : public QTableView
 {
     Q_OBJECT
 
@@ -41,7 +41,7 @@ private:
      * @class ScrollArea
      *
      */
-    class ScrollArea: public QScrollArea
+    class ScrollArea : public QScrollArea
     {
         friend class AdvancedTableView;
 
@@ -147,9 +147,17 @@ protected:
     void paintEvent( QPaintEvent * event );
 
 private:
+
     void clearAdvancedTableView();
 
     void setupSignalSlotConnections();
+
+    //if the layout geometry of the widget container mHeaderRows changed
+    //- new rows added
+    //- columns swapped
+    //this should be called.
+    //it recreates mHeaderScrollArea
+    void createHeaderLayout();
 
     void createHeaderRow();
 
@@ -158,8 +166,6 @@ private:
     void updateHeaderRows();
 
     int calculateHeaderHeight();
-
-    bool mPrintDebug;
 
 //Header Row private members
 
@@ -176,6 +182,9 @@ private:
 //general private members
 
     bool mHasVerticalHeader;
+
+    bool mPrintDebug;
+
 
 };
 

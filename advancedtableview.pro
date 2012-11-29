@@ -4,6 +4,10 @@ QT       += core gui testlib
 TARGET = advancedtableview
 TEMPLATE = app
 
+#more strict compiler warnings
+#QMAKE_CXXFLAGS_WARN_ON = -Wall -Wextra -ansi -pedantic
+#-Weffc++
+
 SOURCES += main.cpp\
     tablemodel.cpp \
     advancedtableview.cpp \

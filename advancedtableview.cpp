@@ -136,6 +136,116 @@ void AdvancedTableView::setupSignalSlotConnections()
 
 }
 
+void AdvancedTableView::createHeaderLayout() {
+
+    //first test if mHeaderScrollArea already exists
+    if( !mHeaderScrollArea ) {
+
+        //create mHeaderScrollArea
+        mHeaderScrollArea = new ScrollArea( this );
+
+    } else {
+
+        //delete mHeaderLayout
+        for ( int rowIdx = 0; rowIdx < mHeaderRows.size(); rowIdx++ ) {
+
+            //iterate cols
+            int columnCount = mHeaderRows[0].size();
+            for ( int colIdx = 0; colIdx < columnCount; colIdx++ ) {
+
+                QWidget* w = mHeaderRows[ rowIdx ][ colIdx ];
+                w->hide();
+
+                mHeaderLayout->removeWidget( w );
+
+
+                mHeaderLayout->removeItem( mHeaderLayout->itemAtPosition ( rowIdx, colIdx )  );
+
+                w->setParent( 0 );
+            }
+
+        }
+
+        //delete Scroll Area Widget which contains mHeaderLayout
+        QWidget* scrollAreaContainer = mHeaderScrollArea->widget();
+        scrollAreaContainer->hide();
+        delete scrollAreaContainer;
+
+        mHeaderLayout = 0;
+    }
+
+    Q_ASSERT_X( mHeaderLayout == 0, "AdvancedTableView::createHeaderScrollArea()", "mHeaderLayout == 0");
+    mHeaderLayout = new QGridLayout( this );
+
+    //setup mHeaderLayout
+    mHeaderLayout->setAlignment( Qt::AlignLeft | Qt::AlignTop );
+    //scrollAreaLayout->setSizeConstraint(QLayout::SetFixedSize);
+    mHeaderLayout->setSizeConstraint( QLayout::SetMinAndMaxSize );
+    //scrollAreaLayout->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
+    mHeaderLayout->setSpacing( 0 );
+    mHeaderLayout->setContentsMargins( 0, 0, 0, 0 );
+
+    //set widgets from mHeaderRows to layout
+
+    //get dimension
+    int rowCount = 0;
+    int columnCount = 0;
+    if(mHeaderRows.size() > 0) {
+        rowCount = mHeaderRows.size();
+        columnCount = mHeaderRows.at(0).size();
+    }
+
+    //-> iterate mHeaderRows
+    //iterate cols
+    for ( int rowIdx = 0; rowIdx < mHeaderRows.size(); rowIdx++ ) {
+
+        //iterate cols
+        //int columnCount = mHeaderRows[0].size();
+        for ( int colIdx = 0; colIdx < columnCount; colIdx++ ) {
+
+            QWidget* w = mHeaderRows[ rowIdx ][ colIdx ];
+
+            mHeaderLayout->addWidget( w, rowIdx, colIdx );
+
+            //the widget was hidden while removing from layout
+            //now it must made visible again
+            w->show();
+
+        }
+
+    }
+
+    QWidget* scrollAreaContainer = new QWidget();
+    scrollAreaContainer->setLayout( mHeaderLayout );
+
+    mHeaderScrollArea->setWidget( scrollAreaContainer );
+
+    mHeaderScrollArea->viewport()->update();
+    mHeaderScrollArea->horizontalScrollBar()->update();
+
+    this->updateHeaderRows();
+}
+
+void AdvancedTableView::createHeaderRow()
+{
+
+    //create row
+    int columnCount = QTableView::horizontalHeader()->count();
+
+    QList< QWidget* > headerRow;
+    for ( int currentColumn = 0; currentColumn < columnCount; currentColumn++ ) {
+
+        QWidget* w = new QWidget();
+        headerRow.append( w );
+
+    }
+
+    mHeaderRows.append( headerRow );
+
+    this->createHeaderLayout();
+
+}
+
 void AdvancedTableView::updateGeometries()
 {
 
@@ -237,74 +347,23 @@ void AdvancedTableView::onQTableViewHHSectionMoved( int logicalIndex, int oldVis
 
     }
 
-    this->updateHeaderRows();
+    //swap widgets in mHeaderRows
+    for( int row=0; row < mHeaderRows.count(); row++ ) {
 
-}
+        //store new position
+        QWidget* storedWidget = mHeaderRows[row][newVisualIndex];
+        //set new position
+        QWidget* newPosWidget = mHeaderRows[row][oldVisualIndex];
+        mHeaderRows[row][newVisualIndex] = mHeaderRows[row][oldVisualIndex];
+        //set old position
+        QWidget* oldPosWidget = storedWidget;
+        mHeaderRows[row][oldVisualIndex] = storedWidget;
 
-void AdvancedTableView::createHeaderRow()
-{
-
-    //if this is the first -> create header scrollarea and layout
-    if ( mHeaderRows.size() == 0 ) {
-
-        //create scrollarea
-        mHeaderScrollArea = new ScrollArea( this );
-
-        //create layout
-        mHeaderLayout = new QGridLayout();
-        mHeaderLayout->setAlignment( Qt::AlignLeft | Qt::AlignTop );
-        //scrollAreaLayout->setSizeConstraint(QLayout::SetFixedSize);
-        mHeaderLayout->setSizeConstraint( QLayout::SetMinAndMaxSize );
-        //scrollAreaLayout->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
-        mHeaderLayout->setSpacing( 0 );
-        mHeaderLayout->setContentsMargins( 0, 0, 0, 0 );
-
-        QWidget* scrollAreaContainer = new QWidget();
-        scrollAreaContainer->setLayout( mHeaderLayout );
-
-        //create row
-        int columnCount = QTableView::horizontalHeader()->count();
-
-        QList< QWidget* > headerRow;
-        for ( int currentColumn = 0; currentColumn < columnCount; currentColumn++ ) {
-
-            QWidget* w = new QWidget();
-            mHeaderLayout->addWidget( w, 0, currentColumn );
-            headerRow.append( w );
-
-        }
-
-        mHeaderRows.append( headerRow );
-
-        mHeaderScrollArea->setWidget( scrollAreaContainer );
-
-        mHeaderScrollArea->viewport()->update();
-        mHeaderScrollArea->horizontalScrollBar()->update();
-
-        this->updateHeaderRows();
-
-    } else {
-
-        //create header scrollarea and layout already created!
-        //create row
-        int columnCount = QTableView::horizontalHeader()->count();
-
-        QList< QWidget* > headerRow;
-        for ( int currentColumn = 0; currentColumn < columnCount; currentColumn++ ) {
-
-            QWidget* w = new QWidget();
-            mHeaderLayout->addWidget( w, 0, currentColumn );
-            headerRow.append( w );
-
-        }
-
-        mHeaderRows.append( headerRow );
-
-        mHeaderScrollArea->viewport()->update();
-        mHeaderScrollArea->horizontalScrollBar()->update();
-
-        this->updateHeaderRows();
     }
+
+    this->createHeaderLayout();
+
+    this->updateHeaderRows();
 
 }
 

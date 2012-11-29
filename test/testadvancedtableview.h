@@ -21,11 +21,13 @@ private slots:
 
     void setModel();
 
+    void moveSections();
+
     void cleanupTestCase();
 
 private:
     AdvancedTableView* mATV;
-    
+
 };
 
 DECLARE_TEST( TestAdvancedTableView )

@@ -6,6 +6,7 @@
 #include <QAbstractItemModel>
 #include <QApplication>
 #include <QDebug>
+#include <QHeaderView>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTableView>
@@ -13,7 +14,7 @@
 //When enabled
 //Unit Tests (TestAdvancedTableView) are executed
 //When the tests are passed AdvancedTableView is executed
-//#define RUN_TESTS
+#define RUN_TESTS
 
 //When enabled TestTableView
 // - a non modified QTableView for testing purposses
@@ -67,6 +68,10 @@ int usageExample( QApplication& a ) {
 
     myView.setModel( &myModel );
 
+    //set header moveable
+    QHeaderView* hheader = myView.horizontalHeader();
+    hheader->setMovable( true );
+
     //get QTableView column count
     QAbstractItemModel* tableModel =  myView.model();
     int columnCount = tableModel->columnCount();
@@ -78,6 +83,8 @@ int usageExample( QApplication& a ) {
 
         QLineEdit* le = new QLineEdit();
 
+        le->setText( QString::number( i+1 ) );
+
         myView.setHeaderWidget( i, 0, le );
 
     }
@@ -85,7 +92,7 @@ int usageExample( QApplication& a ) {
     //if a widget is not needed you can set a QWidget
     //in this case the widget which was before there (QLineEdit) is deleted!
     QWidget* w = new QWidget();
-    myView.setHeaderWidget( 1, 0, w ) == true;
+    myView.setHeaderWidget( 1, 0, w );
 
 //create another header row with QPushButtons
     myView.addHeaderRow();
@@ -93,6 +100,8 @@ int usageExample( QApplication& a ) {
     for ( int i = 0; i < columnCount; i++ ) {
 
         QPushButton* pb = new QPushButton();
+
+        pb->setText( QString::number( i+1 ) );
 
         myView.setHeaderWidget( i, 1, pb );
 
