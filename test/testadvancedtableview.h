@@ -1,10 +1,7 @@
 #ifndef TESTADVANCEDTABLEVIEW_H
 #define TESTADVANCEDTABLEVIEW_H
 
-#include "advancedtableview.h"
 #include "autotest.h"
-
-#include <QFrame>
 
 class TestAdvancedTableView: public QObject
 {
@@ -24,9 +21,6 @@ private slots:
     void moveSections();
 
     void cleanupTestCase();
-
-private:
-    AdvancedTableView* mATV;
 
 };
 

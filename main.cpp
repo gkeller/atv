@@ -3,13 +3,14 @@
 #include "test/autotest.h"
 #include "test/testtableview.h"
 
-#include <QAbstractItemModel>
+//#include <QAbstractItemModel>
 #include <QApplication>
 #include <QDebug>
 #include <QHeaderView>
 #include <QLineEdit>
 #include <QPushButton>
 #include <QTableView>
+#include <QtGlobal>
 
 //When enabled
 //Unit Tests (TestAdvancedTableView) are executed

@@ -1,30 +1,18 @@
 #include "testadvancedtableview.h"
 
-#include "tablemodel.h"
+#include "../advancedtableview.h"
+#include "../tablemodel.h"
 
 #include <QHeaderView>
 #include <QLineEdit>
 
 void TestAdvancedTableView::initTestCase()
 {
-    /*
-    TableModel myModel( 2, 8 );
-
-    mATV = new AdvancedTableView( false );
-
-    mATV->setModel( &myModel );
-    */
 
 }
 
 void TestAdvancedTableView::cleanupTestCase()
 {
-    /*
-    if ( mATV ) {
-        delete mATV;
-        mATV = 0;
-    }
-    */
 
 }
 

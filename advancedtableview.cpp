@@ -11,7 +11,7 @@
 #include <QVBoxLayout>
 
 AdvancedTableView::ScrollArea::ScrollArea( QWidget *parent )
-    : QScrollArea( parent )
+    : QScrollArea( parent ), mSize( 0, 0 )
 {
     //When true the scroll bar of the custom widgets is shown which is usually not shown
     //but this is sometimes usefull for debugging
@@ -67,13 +67,10 @@ QSize AdvancedTableView::ScrollArea::sizeHint() const
 }
 
 AdvancedTableView::AdvancedTableView( QWidget *parent )
-    : QTableView( parent ), mHeaderLayout( NULL ), mHeaderScrollArea( NULL ), mMarginTopHeight(
-          0 ), mHasVerticalHeader(
-        false )
+    : QTableView( parent ), mHasVerticalHeader(
+          false ), mPrintDebug( false ), mHeaderLayout( NULL ), mHeaderScrollArea( NULL ), mHeaderRows( QList< QList< QWidget* > >() ), mMarginTopHeight(
+          0 ), mHeaderRowHeights( QList<int>() )
 {
-
-    //print deb msg?
-    mPrintDebug = false;
 
     QAbstractItemView::setHorizontalScrollMode( QAbstractItemView::ScrollPerPixel );
 
@@ -112,7 +109,7 @@ void AdvancedTableView::setModel( QAbstractItemModel* model ) {
 
     this->clearAdvancedTableView();
 
-    mMarginTopHeight = calculateHeaderHeight();
+    mMarginTopHeight = this->calculateHeaderHeight();
 
 }
 
@@ -151,9 +148,11 @@ void AdvancedTableView::createHeaderLayout() {
 
             //iterate cols
             int columnCount = mHeaderRows[0].size();
+
             for ( int colIdx = 0; colIdx < columnCount; colIdx++ ) {
 
                 QWidget* w = mHeaderRows[ rowIdx ][ colIdx ];
+
                 w->hide();
 
                 mHeaderLayout->removeWidget( w );
@@ -172,6 +171,7 @@ void AdvancedTableView::createHeaderLayout() {
         delete scrollAreaContainer;
 
         mHeaderLayout = 0;
+
     }
 
     Q_ASSERT_X( mHeaderLayout == 0, "AdvancedTableView::createHeaderScrollArea()", "mHeaderLayout == 0");
@@ -224,6 +224,7 @@ void AdvancedTableView::createHeaderLayout() {
     mHeaderScrollArea->horizontalScrollBar()->update();
 
     this->updateHeaderRows();
+
 }
 
 void AdvancedTableView::createHeaderRow()
@@ -353,10 +354,8 @@ void AdvancedTableView::onQTableViewHHSectionMoved( int logicalIndex, int oldVis
         //store new position
         QWidget* storedWidget = mHeaderRows[row][newVisualIndex];
         //set new position
-        QWidget* newPosWidget = mHeaderRows[row][oldVisualIndex];
         mHeaderRows[row][newVisualIndex] = mHeaderRows[row][oldVisualIndex];
         //set old position
-        QWidget* oldPosWidget = storedWidget;
         mHeaderRows[row][oldVisualIndex] = storedWidget;
 
     }

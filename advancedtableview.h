@@ -15,6 +15,8 @@
 #ifndef ADVANCEDTABLEVIEW_H
 #define ADVANCEDTABLEVIEW_H
 
+#include <qglobal.h>
+#include <QGridLayout>
 #include <QScrollArea>
 #include <QTableView>
 #include <QVBoxLayout>
@@ -76,7 +78,7 @@ public:
      *
      * @param parent
      */
-    explicit AdvancedTableView( QWidget *parent );
+    AdvancedTableView( QWidget *parent );
     ~AdvancedTableView();
 
     /**
@@ -91,6 +93,8 @@ public:
      * The ViewportMargins of the Scroll Areas are set here.
      */
     void updateGeometries();
+
+//Header Row Public API Interface
 
     /**
      * Creates a new Header Row based on the columns of the table.
@@ -148,9 +152,16 @@ protected:
 
 private:
 
+//general private functions
+
+    //disable copy constructor - this is a basic concept in Qt Widgets
+    Q_DISABLE_COPY(AdvancedTableView)
+
     void clearAdvancedTableView();
 
     void setupSignalSlotConnections();
+
+//Header Row private functions
 
     //if the layout geometry of the widget container mHeaderRows changed
     //- new rows added
@@ -167,6 +178,12 @@ private:
 
     int calculateHeaderHeight();
 
+//general private members
+
+    bool mHasVerticalHeader;
+
+    bool mPrintDebug;
+
 //Header Row private members
 
     QGridLayout* mHeaderLayout;
@@ -178,13 +195,6 @@ private:
     int mMarginTopHeight; //height of the QTableView top margin area
 
     QList< int > mHeaderRowHeights; //height of each row
-
-//general private members
-
-    bool mHasVerticalHeader;
-
-    bool mPrintDebug;
-
 
 };
 

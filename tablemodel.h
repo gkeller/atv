@@ -12,10 +12,11 @@
  * @version 0.1
  */
 
-#ifndef MYMODEL_H
-#define MYMODEL_H
+#ifndef TABLEMODEL_H
+#define TABLEMODEL_H
 
-#include <QAbstractTableModel>
+//#include <QAbstractTableModel>
+#include <QtCore/QModelIndex>
 
 /**
  * Just a simple Model to populate QTableView with data.
@@ -37,10 +38,12 @@ public:
 
     QVariant data( const QModelIndex &index, int role = Qt::DisplayRole ) const;
 
+    void test();
+
 private:
     int mRowCount;
     int mColCount;
 
 };
 
-#endif // MYMODEL_H
+#endif // TABLEMODEL_H
