@@ -5,6 +5,7 @@
 
 //#include <QAbstractItemModel>
 #include <QApplication>
+//#include <QColorGroup>
 #include <QDebug>
 #include <QHeaderView>
 #include <QLineEdit>
@@ -69,7 +70,7 @@ int usageExample( QApplication& a ) {
 
     myView.setModel( &myModel );
 
-    //set header moveable
+    //set header moveable - enables swapping of columns
     QHeaderView* hheader = myView.horizontalHeader();
     hheader->setMovable( true );
 
@@ -77,14 +78,21 @@ int usageExample( QApplication& a ) {
     QAbstractItemModel* tableModel =  myView.model();
     int columnCount = tableModel->columnCount();
 
+//************************
+// Header Row Example
+//************************
 //create a header row with QLineEdits
     myView.addHeaderRow();
 
     for ( int i = 0; i < columnCount; i++ ) {
 
         QLineEdit* le = new QLineEdit();
-
-        le->setText( QString::number( i+1 ) );
+/*
+        QPalette p = le->palette();
+        p.setColor( QPalette::Normal, QColorGroup::Base, QColor(0,255,0) );
+        le->setPalette(p);
+*/
+        le->setText( QString("Header ") + QString::number( i+1 ) );
 
         myView.setHeaderWidget( i, 0, le );
 
@@ -107,6 +115,50 @@ int usageExample( QApplication& a ) {
         myView.setHeaderWidget( i, 1, pb );
 
     }
+
+//************************
+// Footer Row Example
+//************************
+//create a footer row with QLineEdits
+    myView.addFooterRow();
+
+    for ( int i = 0; i < columnCount; i++ ) {
+
+        QLineEdit* le = new QLineEdit();
+
+        //le->setColor(QPalette::Base, QColor(0,255,0));//green color
+
+        //QPallete p = statuswindow->IFOSC_Subsystem0_lineEdit->palette();
+
+        //p.setColor(QPalette::Normal, QPalette::Base, QColor(0,255,0));//green color
+/*
+        QPalette p = le->palette();
+        p.setColor( QPalette::Normal, QColorGroup::Base, QColor(0,255,0) );
+        le->setPalette(p);
+*/
+        le->setText( QString("Footer ") + QString::number( i+1 ) );
+
+        myView.setFooterWidget( i, 0, le );
+
+    }
+
+    //if a widget is not needed you can set a QWidget
+    //in this case the widget which was before there (QLineEdit) is deleted!
+    //QWidget* w = new QWidget();
+    //myView.setFooterWidget( 1, 0, w );
+
+    //create another footer row with QPushButtons
+    /*myView.addFooterRow();
+
+    for ( int i = 0; i < columnCount; i++ ) {
+
+        QPushButton* pb = new QPushButton();
+
+        pb->setText( QString::number( i+1 ) );
+
+        myView.setFooterWidget( i, 1, pb );
+
+    }*/
 
     myView.show();
 

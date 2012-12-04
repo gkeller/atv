@@ -7,6 +7,9 @@
 #include <QHeaderView>
 #include <QLayoutItem>
 #include <QLineEdit>
+#include <QRect>
+#include <QResizeEvent>
+#include <QRegion>
 #include <QScrollBar>
 #include <QVBoxLayout>
 
@@ -68,11 +71,26 @@ QSize AdvancedTableView::ScrollArea::sizeHint() const
 
 AdvancedTableView::AdvancedTableView( QWidget *parent )
     : QTableView( parent ), mHasVerticalHeader(
-          false ), mPrintDebug( false ), mHeaderLayout( NULL ), mHeaderScrollArea( NULL ), mHeaderRows( QList< QList< QWidget* > >() ), mMarginTopHeight(
-          0 ), mHeaderRowHeights( QList<int>() )
+          false ), mPrintDebug( false ), mMarginLayout( 0 ), mHorizontalHeaderHeight( 0 ), mVertiticalHeaderWidth( 0 ), mHeaderLayout( NULL ), mHeaderScrollArea( NULL ), mHeaderRows( QList< QList< QWidget* > >() ), mMarginTopHeight(
+          0 ), mHeaderRowHeights( QList<int>() ), mFooterLayout( NULL ), mFooterScrollArea( NULL ), mFooterRows( QList< QList< QWidget* > >() ), mMarginBottomHeight(
+          0 ), mFooterRowHeights( QList<int>() )
 {
-
+    //This is a important Setting and should not be changed!!!
+    //The visible Area is determined with it.
     QAbstractItemView::setHorizontalScrollMode( QAbstractItemView::ScrollPerPixel );
+    QAbstractItemView::setVerticalScrollMode( QAbstractItemView::ScrollPerPixel );
+
+    //QTableView::setStyleSheet("background-color: yellow");
+    QTableView::viewport()->setStyleSheet("background-color: yellow");
+    //they layout set is
+    //------------------------------------------
+    //| empty                 | Header         |
+    //------------------------------------------
+    //| vertical table header | table (spacer) |
+    //------------------------------------------
+    //| empty                 | Footer         |
+    //------------------------------------------
+    //mMarginLayout = new QGridLayout( this );
 
     this->setupSignalSlotConnections();
 
@@ -94,6 +112,11 @@ void AdvancedTableView::clearAdvancedTableView()
 
     }
 
+    if ( !mFooterRows.isEmpty() ) {
+
+        mFooterRows.clear();
+
+    }
 }
 
 void AdvancedTableView::setModel( QAbstractItemModel* model ) {
@@ -110,6 +133,8 @@ void AdvancedTableView::setModel( QAbstractItemModel* model ) {
     this->clearAdvancedTableView();
 
     mMarginTopHeight = this->calculateHeaderHeight();
+
+    mMarginBottomHeight = this->calculateFooterHeight();
 
 }
 
@@ -130,6 +155,54 @@ void AdvancedTableView::setupSignalSlotConnections()
 
     QObject::connect( horizontalHeader, SIGNAL( geometriesChanged() ), this,
         SLOT( onQTableViewHHGeometriesChanged() ) );
+
+}
+
+QSize AdvancedTableView::getQTableViewSize() {
+
+    //vertical header
+    int width = QTableView::verticalHeader()->width() + 4; // +4 seems to be needed
+
+    //horizontal header
+    int height = QTableView::horizontalHeader()->height() + 4;
+
+    if( QTableView::model() ) {
+
+        for (int i = 0; i < QTableView::model()->columnCount(); i++) {
+
+            width += QTableView::columnWidth(i); // seems to include gridline (on my machine)
+
+        }
+
+        for (int i = 0; i < QTableView::model()->rowCount(); i++) {
+
+            height += QTableView::rowHeight(i);
+
+        }
+
+    }
+
+    return QSize( width, height );
+}
+
+QSize AdvancedTableView::getVisibleViewportSize() {
+
+    int width, height = -1;
+
+    //visibleViewportHeight
+    QWidget* viewport = QAbstractItemView::viewport();
+    QRegion visibleRegion = viewport->visibleRegion();
+
+    if( !visibleRegion.isEmpty() ) {
+
+        QRect boundingRect = visibleRegion.boundingRect();
+
+        width = boundingRect.width();
+        height = boundingRect.height();
+
+    }
+
+    return QSize( width, height );
 
 }
 
@@ -247,125 +320,6 @@ void AdvancedTableView::createHeaderRow()
 
 }
 
-void AdvancedTableView::updateGeometries()
-{
-
-    int width = 0;
-
-    if ( !QTableView::verticalHeader()->isHidden() ) {
-
-        width = qMax( QTableView::verticalHeader()->minimumWidth(),
-            QTableView::verticalHeader()->sizeHint().width() );
-        width = qMin( width, QTableView::verticalHeader()->maximumWidth() );
-
-    }
-
-    int height = 0;
-
-    if ( !QTableView::horizontalHeader()->isHidden() ) {
-
-        height = qMax( QTableView::horizontalHeader()->minimumHeight(),
-            QTableView::horizontalHeader()->sizeHint().height() );
-        height = qMin( height, QTableView::horizontalHeader()->maximumHeight() );
-
-    }
-
-    bool reverse = QTableView::isRightToLeft();
-
-    if ( reverse ) {
-
-        setViewportMargins( width, height + mMarginTopHeight, 0, 0 );
-        setContentsMargins( 0, 0, 0, 0 );
-
-        if ( mHeaderScrollArea ) {
-
-            mHeaderScrollArea->setViewportMargins( width, 0, 0, 0 );
-
-        }
-
-    } else {
-
-        int north = height + mMarginTopHeight;
-        setViewportMargins( width, north, 0, 0 );
-        setContentsMargins( 0, 0, 0, 0 );
-
-        qCritical() << "updateGeometries(); " << north;
-
-        if ( mHeaderScrollArea ) {
-
-            mHeaderScrollArea->setViewportMargins( width, 0, 0, 0 );
-
-        }
-
-    }
-
-    QTableView::updateGeometries();
-
-}
-
-void AdvancedTableView::onQTableViewHHGeometriesChanged()
-{
-
-    this->updateHeaderRows();
-
-}
-
-void AdvancedTableView::onQTableViewHHSectionResized( int logicalIndex, int oldSize, int newSize )
-{
-
-    if ( this->mPrintDebug )
-        qDebug() << "DBFilterUI::onQTableViewHHSectionResized( " << logicalIndex << ", " << oldSize
-            << ", " << newSize << ")";
-
-    QTableView::viewport()->update();
-    QTableView::horizontalScrollBar()->update();
-
-    this->updateHeaderRows();
-
-}
-
-void AdvancedTableView::onQTableViewHHSectionCountChanged( int oldCount, int newCount )
-{
-
-    if ( this->mPrintDebug ) {
-
-        qDebug() << "DBFilterUI::onQTableViewHHSectionCountChanged( " << oldCount << ", "
-            << newCount << ")";
-
-    }
-
-    this->updateHeaderRows();
-
-}
-void AdvancedTableView::onQTableViewHHSectionMoved( int logicalIndex, int oldVisualIndex,
-    int newVisualIndex )
-{
-
-    if ( this->mPrintDebug ) {
-
-        qDebug() << "DBFilterUI::onQTableViewHHSectionMoved( " << logicalIndex << ", "
-            << oldVisualIndex << ", " << newVisualIndex << ")";
-
-    }
-
-    //swap widgets in mHeaderRows
-    for( int row=0; row < mHeaderRows.count(); row++ ) {
-
-        //store new position
-        QWidget* storedWidget = mHeaderRows[row][newVisualIndex];
-        //set new position
-        mHeaderRows[row][newVisualIndex] = mHeaderRows[row][oldVisualIndex];
-        //set old position
-        mHeaderRows[row][oldVisualIndex] = storedWidget;
-
-    }
-
-    this->createHeaderLayout();
-
-    this->updateHeaderRows();
-
-}
-
 bool AdvancedTableView::verifyHeaderIndex( int col, int row )
 {
 
@@ -384,73 +338,6 @@ bool AdvancedTableView::verifyHeaderIndex( int col, int row )
     }
 
     return true;
-}
-
-bool AdvancedTableView::addHeaderRow()
-{
-
-    //test if a model was already set to te view
-    if ( !selectionModel() ) {
-
-        return false;
-
-    }
-
-    this->createHeaderRow();
-
-    return true;
-
-}
-
-int AdvancedTableView::getHeaderRowCount()
-{
-
-    return mHeaderRows.size();
-
-}
-
-bool AdvancedTableView::setHeaderWidget( int col, int row, QWidget* widget )
-{
-
-    if ( !this->verifyHeaderIndex( col, row ) ) {
-
-        return false;
-
-    }
-
-    QWidget* oldWidget = mHeaderRows[ row ][ col ];
-
-    if ( oldWidget ) {
-
-        delete oldWidget;
-        oldWidget = 0;
-
-    }
-
-    mHeaderRows[ row ][ col ] = widget;
-
-    mHeaderLayout->addWidget( widget, row, col );
-
-    mMarginTopHeight = AdvancedTableView::calculateHeaderHeight();
-
-    mHeaderScrollArea->viewport()->update();
-    mHeaderScrollArea->horizontalScrollBar()->update();
-
-    return true;
-
-}
-
-QWidget* AdvancedTableView::getHeaderWidget( int col, int row )
-{
-
-    if ( !this->verifyHeaderIndex( col, row ) ) {
-
-        return 0;
-
-    }
-
-    return mHeaderRows[ row ][ col ];
-
 }
 
 void AdvancedTableView::updateHeaderRows()
@@ -558,6 +445,585 @@ int AdvancedTableView::calculateHeaderHeight()
     return headerHeight;
 }
 
+void AdvancedTableView::createFooterLayout() {
+
+    //first test if mFooterScrollArea already exists
+    if( !mFooterScrollArea ) {
+
+        //create mFooterScrollArea
+        mFooterScrollArea = new ScrollArea( this );
+
+        //QWidget* container = new QWidget();
+        //container->setLayout( mFooterLayout );
+        //
+        //mMarginLayout->addWidget( mFooterScrollArea, 2, 1 );
+
+
+    } else {
+
+        //delete mFooterLayout
+        for ( int rowIdx = 0; rowIdx < mFooterRows.size(); rowIdx++ ) {
+
+            //iterate cols
+            int columnCount = mFooterRows[0].size();
+
+            for ( int colIdx = 0; colIdx < columnCount; colIdx++ ) {
+
+                QWidget* w = mFooterRows[ rowIdx ][ colIdx ];
+
+                w->hide();
+
+                mFooterLayout->removeWidget( w );
+
+
+                mFooterLayout->removeItem( mFooterLayout->itemAtPosition ( rowIdx, colIdx )  );
+
+                w->setParent( 0 );
+            }
+
+        }
+
+        //delete Scroll Area Widget which contains mFooterLayout
+        QWidget* scrollAreaContainer = mFooterScrollArea->widget();
+        scrollAreaContainer->hide();
+        delete scrollAreaContainer;
+
+        mFooterLayout = 0;
+
+    }
+
+    Q_ASSERT_X( mFooterLayout == 0, "AdvancedTableView::createHeaderScrollArea()", "mFooterLayout == 0");
+    mFooterLayout = new QGridLayout( this );
+
+    //setup mFooterLayout
+    mFooterLayout->setAlignment( Qt::AlignLeft | Qt::AlignTop );
+    //scrollAreaLayout->setSizeConstraint(QLayout::SetFixedSize);
+    mFooterLayout->setSizeConstraint( QLayout::SetMinAndMaxSize );
+    //scrollAreaLayout->setSizePolicy(QSizePolicy::Minimum, QSizePolicy::Expanding);
+    mFooterLayout->setSpacing( 0 );
+    mFooterLayout->setContentsMargins( 0, 0, 0, 0 );
+
+    //set widgets from mFooterRows to layout
+
+    //get dimension
+    int rowCount = 0;
+    int columnCount = 0;
+    if(mFooterRows.size() > 0) {
+        rowCount = mFooterRows.size();
+        columnCount = mFooterRows.at(0).size();
+    }
+
+    //-> iterate mFooterRows
+    //iterate cols
+    for ( int rowIdx = 0; rowIdx < mFooterRows.size(); rowIdx++ ) {
+
+        //iterate cols
+        //int columnCount = mFooterRows[0].size();
+        for ( int colIdx = 0; colIdx < columnCount; colIdx++ ) {
+
+            QWidget* w = mFooterRows[ rowIdx ][ colIdx ];
+
+            mFooterLayout->addWidget( w, rowIdx, colIdx );
+
+            //the widget was hidden while removing from layout
+            //now it must made visible again
+            w->show();
+
+        }
+
+    }
+
+    QWidget* scrollAreaContainer = new QWidget();
+    scrollAreaContainer->setLayout( mFooterLayout );
+
+    mFooterScrollArea->setWidget( scrollAreaContainer );
+
+    mFooterScrollArea->viewport()->update();
+    mFooterScrollArea->horizontalScrollBar()->update();
+
+    this->updateFooterRows();
+
+}
+
+void AdvancedTableView::createFooterRow()
+{
+
+    //create row
+    int columnCount = QTableView::horizontalHeader()->count();
+
+    QList< QWidget* > footerRow;
+    for ( int currentColumn = 0; currentColumn < columnCount; currentColumn++ ) {
+
+        QWidget* w = new QWidget();
+        footerRow.append( w );
+
+    }
+
+    mFooterRows.append( footerRow );
+
+    this->createFooterLayout();
+
+}
+
+bool AdvancedTableView::verifyFooterIndex( int col, int row )
+{
+
+    //test if the indexes are valid
+    //row
+    if ( row < 0 || mFooterRows.size() < (row + 1) ) {
+
+        return false;
+
+    }
+    //col
+    if ( col < 0 || mFooterRows.at( row ).size() < (col + 1) ) {
+
+        return false;
+
+    }
+
+    return true;
+}
+
+void AdvancedTableView::updateFooterRows()
+{
+    this->calculateFooterHeight();
+
+    int absoluteTableSize = 0;
+
+    //vertical header
+    int verticalFooterWidth = 0;
+    if ( mHasVerticalHeader ) {
+
+        verticalFooterWidth = QTableView::verticalHeader()->sizeHint().width();
+
+        absoluteTableSize += verticalFooterWidth;
+
+    }
+
+    //columns
+    int columnStartIdx = 0;
+    if ( mHasVerticalHeader ) {
+
+        columnStartIdx = 1;
+
+    }
+
+    int columnCount = QTableView::horizontalHeader()->count();
+
+    //iterate cols
+    for ( int colIdx = 0; colIdx < columnCount; colIdx++ ) {
+
+        //wie gross ist jede spalte?
+        int columnWidth = QTableView::columnWidth( colIdx );
+
+        absoluteTableSize += columnWidth;
+
+        //iterate rows
+        for ( int rowIdx = 0; rowIdx < mFooterRows.size(); rowIdx++ ) {
+
+            int rowHeight = mFooterRowHeights.at( rowIdx );
+            mFooterRows[ rowIdx ][ colIdx ]->setFixedSize( columnWidth, rowHeight );
+
+        }
+
+    }
+
+    if ( mFooterScrollArea ) {
+
+        QScrollBar* hsbMScrollArea = mFooterScrollArea->horizontalScrollBar();
+        hsbMScrollArea->setPageStep( 1 );
+        hsbMScrollArea->setMinimum( 0 );
+        hsbMScrollArea->setMaximum( (absoluteTableSize - verticalFooterWidth) );
+
+        mFooterScrollArea->setSize( QAbstractScrollArea::width(), mMarginBottomHeight );
+
+        //QSize thisViewport = QAbstractScrollArea::viewport()->sizeHint();
+        //QSize otherViewport = mHeaderScrollArea->viewport()->sizeHint();
+
+        mFooterScrollArea->viewport()->update();
+        mFooterScrollArea->horizontalScrollBar()->update();
+
+    }
+
+}
+
+// als the height for each row is calculated which is stored in mFooterRowHeights
+int AdvancedTableView::calculateFooterHeight()
+{
+
+    int columnCount = QTableView::horizontalHeader()->count();
+
+    mFooterRowHeights.clear();
+
+    int footerHeight = 0;
+
+    //iterate rows
+    for ( int rowIdx = 0; rowIdx < mFooterRows.size(); rowIdx++ ) {
+
+        int rowHeight = 0;
+
+        //iterate cols
+        for ( int colIdx = 0; colIdx < columnCount; colIdx++ ) {
+
+            int currentHeight = mFooterRows[ rowIdx ][ colIdx ]->sizeHint().height();
+
+            //for each row the height of the max-height widget is taken
+            if ( rowHeight < currentHeight ) {
+
+                rowHeight = currentHeight;
+
+            }
+
+        }
+
+        mFooterRowHeights.append( rowHeight );
+
+        //summ height of all rows
+        footerHeight += rowHeight;
+
+    }
+
+    //add one more pixel
+    footerHeight++;
+
+    return footerHeight;
+}
+
+void AdvancedTableView::calculateFooterPosition( int visibleViewportHeight ) {
+
+    if( visibleViewportHeight >= 0 ) {
+
+        mFooterScrollArea->move( 0, (mMarginTopHeight + mHorizontalHeaderHeight + visibleViewportHeight) );
+        return;
+    }
+
+
+}
+
+//setViewportMargins ( int left, int top, int right, int bottom )
+void AdvancedTableView::updateGeometries()
+{
+
+    mVertiticalHeaderWidth = 0;
+
+    if ( !QTableView::verticalHeader()->isHidden() ) {
+
+        mVertiticalHeaderWidth = qMax( QTableView::verticalHeader()->minimumWidth(),
+            QTableView::verticalHeader()->sizeHint().width() );
+        mVertiticalHeaderWidth = qMin( mVertiticalHeaderWidth, QTableView::verticalHeader()->maximumWidth() );
+
+    }
+
+    mHorizontalHeaderHeight = 0;
+
+    if ( !QTableView::horizontalHeader()->isHidden() ) {
+
+        mHorizontalHeaderHeight = qMax( QTableView::horizontalHeader()->minimumHeight(),
+            QTableView::horizontalHeader()->sizeHint().height() );
+        mHorizontalHeaderHeight = qMin( mHorizontalHeaderHeight, QTableView::horizontalHeader()->maximumHeight() );
+
+    }
+
+    bool reverse = QTableView::isRightToLeft();
+
+    if ( reverse ) {
+
+        setViewportMargins( mVertiticalHeaderWidth, mHorizontalHeaderHeight + mMarginTopHeight, 0, 0 );
+        setContentsMargins( 0, 0, 0, 0 );
+//header
+        if ( mHeaderScrollArea ) {
+
+            mHeaderScrollArea->setViewportMargins( mVertiticalHeaderWidth, 0, 0, 0 );
+
+        }
+//footer
+        if ( mFooterScrollArea ) {
+
+            mFooterScrollArea->setViewportMargins( mVertiticalHeaderWidth, 0, 0, 0 );
+
+        }
+
+    } else {
+
+        //int totalHeight = QTableView::totalHeight();
+        QSize ts = getQTableViewSize();
+
+        //int north = horizontalHeaderHeight + mMarginTopHeight;
+        //int south = north + ts.height(), mMarginBottomHeight;
+
+        int leftMargin = mVertiticalHeaderWidth;
+        int topMargin = mHorizontalHeaderHeight + mMarginTopHeight;
+        int rightMargin = 0;
+        int bottomMargin = mMarginBottomHeight;
+
+        setViewportMargins( leftMargin, topMargin, rightMargin, bottomMargin );
+        //setViewportMargins( vertiticalHeaderWidth, north, 0, 0 );
+
+        //QTableView::hide();
+        //int south = height + mMarginBottomHeight;
+        //setViewportMargins( width, 0, 0, south );
+
+        setContentsMargins( 0, 0, 0, 0 );
+
+        //qCritical() << "updateGeometries(); " << north;
+//header
+        if ( mHeaderScrollArea ) {
+
+            mHeaderScrollArea->setViewportMargins( mVertiticalHeaderWidth, 0, 0, 0 );
+
+        }
+//footer
+        if ( mFooterScrollArea ) {
+
+            mFooterScrollArea->setViewportMargins( mVertiticalHeaderWidth, 0, 0, 0 );
+
+            QSize visibleViewportSize = this->getVisibleViewportSize();
+            if( visibleViewportSize.height() >= 0 ) {
+
+                this->calculateFooterPosition( visibleViewportSize.height() );
+
+            }
+
+            //visibleViewportHeight
+            /*QWidget* viewport = QAbstractItemView::viewport();
+            QRegion visibleRegion = viewport->visibleRegion();
+
+            if( !visibleRegion.isEmpty() ) {
+
+                QRect boundingRect = visibleRegion.boundingRect();
+
+                this->calculateFooterPosition( boundingRect.height() );
+
+            }*/
+
+        }
+
+    }
+
+    QTableView::updateGeometries();
+    //QTableView::repaint();
+
+}
+
+void AdvancedTableView::onQTableViewHHGeometriesChanged()
+{
+
+    this->updateHeaderRows();
+
+    this->updateFooterRows();
+
+}
+
+void AdvancedTableView::onQTableViewHHSectionResized( int logicalIndex, int oldSize, int newSize )
+{
+
+    if ( this->mPrintDebug )
+        qDebug() << "DBFilterUI::onQTableViewHHSectionResized( " << logicalIndex << ", " << oldSize
+            << ", " << newSize << ")";
+
+    QTableView::viewport()->update();
+    QTableView::horizontalScrollBar()->update();
+
+    this->updateHeaderRows();
+
+    this->updateFooterRows();
+
+}
+
+void AdvancedTableView::onQTableViewHHSectionCountChanged( int oldCount, int newCount )
+{
+
+    if ( this->mPrintDebug ) {
+
+        qDebug() << "DBFilterUI::onQTableViewHHSectionCountChanged( " << oldCount << ", "
+            << newCount << ")";
+
+    }
+
+    this->updateHeaderRows();
+
+    this->updateFooterRows();
+
+}
+void AdvancedTableView::onQTableViewHHSectionMoved( int logicalIndex, int oldVisualIndex,
+    int newVisualIndex )
+{
+
+    if ( this->mPrintDebug ) {
+
+        qDebug() << "DBFilterUI::onQTableViewHHSectionMoved( " << logicalIndex << ", "
+            << oldVisualIndex << ", " << newVisualIndex << ")";
+
+    }
+
+//swap widgets in mHeaderRows
+    for( int row=0; row < mHeaderRows.count(); row++ ) {
+
+        //store new position
+        QWidget* storedWidget = mHeaderRows[row][newVisualIndex];
+        //set new position
+        mHeaderRows[row][newVisualIndex] = mHeaderRows[row][oldVisualIndex];
+        //set old position
+        mHeaderRows[row][oldVisualIndex] = storedWidget;
+
+    }
+
+    this->createHeaderLayout();
+
+    this->updateHeaderRows();
+
+//swap widgets in mFooterRows
+    for( int row=0; row < mFooterRows.count(); row++ ) {
+
+        //store new position
+        QWidget* storedWidget = mFooterRows[row][newVisualIndex];
+        //set new position
+        mFooterRows[row][newVisualIndex] = mFooterRows[row][oldVisualIndex];
+        //set old position
+        mFooterRows[row][oldVisualIndex] = storedWidget;
+
+    }
+
+    this->createFooterLayout();
+
+    this->updateFooterRows();
+}
+
+bool AdvancedTableView::addHeaderRow()
+{
+
+    //test if a model was already set to te view
+    if ( !selectionModel() ) {
+
+        return false;
+
+    }
+
+    this->createHeaderRow();
+
+    return true;
+
+}
+
+int AdvancedTableView::getHeaderRowCount()
+{
+
+    return mHeaderRows.size();
+
+}
+
+bool AdvancedTableView::setHeaderWidget( int col, int row, QWidget* widget )
+{
+
+    if ( !this->verifyHeaderIndex( col, row ) ) {
+
+        return false;
+
+    }
+
+    QWidget* oldWidget = mHeaderRows[ row ][ col ];
+
+    if ( oldWidget ) {
+
+        delete oldWidget;
+        oldWidget = 0;
+
+    }
+
+    mHeaderRows[ row ][ col ] = widget;
+
+    mHeaderLayout->addWidget( widget, row, col );
+
+    mMarginTopHeight = AdvancedTableView::calculateHeaderHeight();
+
+    mHeaderScrollArea->viewport()->update();
+    mHeaderScrollArea->horizontalScrollBar()->update();
+
+    return true;
+
+}
+
+QWidget* AdvancedTableView::getHeaderWidget( int col, int row )
+{
+
+    if ( !this->verifyHeaderIndex( col, row ) ) {
+
+        return 0;
+
+    }
+
+    return mHeaderRows[ row ][ col ];
+
+}
+
+bool AdvancedTableView::addFooterRow()
+{
+
+    //test if a model was already set to te view
+    if ( !selectionModel() ) {
+
+        return false;
+
+    }
+
+    this->createFooterRow();
+
+    return true;
+
+}
+
+int AdvancedTableView::getFooterRowCount()
+{
+
+    return mFooterRows.size();
+
+}
+
+bool AdvancedTableView::setFooterWidget( int col, int row, QWidget* widget )
+{
+
+    if ( !this->verifyFooterIndex( col, row ) ) {
+
+        return false;
+
+    }
+
+    QWidget* oldWidget = mFooterRows[ row ][ col ];
+
+    if ( oldWidget ) {
+
+        delete oldWidget;
+        oldWidget = 0;
+
+    }
+
+    mFooterRows[ row ][ col ] = widget;
+
+    mFooterLayout->addWidget( widget, row, col );
+
+    mMarginBottomHeight = AdvancedTableView::calculateFooterHeight();
+
+    mFooterScrollArea->viewport()->update();
+    mFooterScrollArea->horizontalScrollBar()->update();
+
+    return true;
+
+}
+
+QWidget* AdvancedTableView::getFooterWidget( int col, int row )
+{
+
+    if ( !this->verifyFooterIndex( col, row ) ) {
+
+        return 0;
+
+    }
+
+    return mFooterRows[ row ][ col ];
+
+}
+
 void AdvancedTableView::scrollContentsBy( int dx, int dy )
 {
     //qDebug() << "TableView::scrollContentsBy(" << dx << "," << dy << ")";
@@ -579,6 +1045,20 @@ void AdvancedTableView::scrollContentsBy( int dx, int dy )
 
     }
 
+    if ( mFooterScrollArea ) {
+
+        QScrollBar* horizontalScrollBarFooter = mFooterScrollArea->horizontalScrollBar();
+
+        //int pageStep = horizontalScrollBarFooter->pageStep();
+
+        int valueFooter = horizontalScrollBarFooter->value();
+
+        //int min = horizontalScrollBarFooter->minimum();
+        //int max = horizontalScrollBarFooter->maximum();
+
+        horizontalScrollBarFooter->setValue( (valueFooter - dx) );
+
+    }
 }
 
 void AdvancedTableView::paintEvent( QPaintEvent * event )
@@ -590,6 +1070,34 @@ void AdvancedTableView::paintEvent( QPaintEvent * event )
 
     }
 
+    if ( mFooterScrollArea ) {
+
+        mFooterScrollArea->setFixedSize( QAbstractScrollArea::width(), mMarginBottomHeight );
+
+    }
+
     QTableView::paintEvent( event );
+
+}
+
+void AdvancedTableView::resizeEvent( QResizeEvent * event ) {
+
+    QTableView::resizeEvent( event );
+
+    if( event->isAccepted() ) {
+
+        //recalculate footer position
+        if ( mFooterScrollArea ) {
+
+            int visibleViewportHeight = event->size().height();
+
+            QSize ts = this->getQTableViewSize();
+
+            qDebug() << visibleViewportHeight << "      " << ts.width();
+            //this->calculateFooterPosition( visibleViewportHeight );
+
+        }
+
+    }
 
 }

@@ -18,6 +18,7 @@
 #include <qglobal.h>
 #include <QGridLayout>
 #include <QScrollArea>
+#include <QSize>
 #include <QTableView>
 #include <QVBoxLayout>
 
@@ -126,6 +127,38 @@ public:
      */
     QWidget* getHeaderWidget( int col, int row );
 
+//Footer Row Public API Interface
+
+    /**
+     * Creates a new Footer Row based on the columns of the table.
+     * Remark: A model must be set to the view before.
+     * @return true: succesful added a Footer Row / false: if no model was set to the view
+    */
+    bool addFooterRow();
+
+    /**
+     * Returns the Footer Row count.
+     * @return
+    */
+    int getFooterRowCount();
+
+    /**
+     * The row and column indexes start with 0.
+     * @param col Table Column [0 ... (columnCount-1)]
+     * @param row Header Row [0 ... (rowCount-1)]
+     * @param w
+     * @return true: indexes are valid -> widget set succesful / false: indexes are not valid! -> widget was not set
+     */
+    bool setFooterWidget( int col, int row, QWidget* w );
+
+    /**
+     *
+     * @param col Table Column
+     * @param row Footer Row
+     * @return
+    */
+    QWidget* getFooterWidget( int col, int row );
+
 public slots:
 
     //QTableView horizontalHeader signals
@@ -150,16 +183,23 @@ protected:
      */
     void paintEvent( QPaintEvent * event );
 
+    void resizeEvent( QResizeEvent * event );
+
 private:
 
 //general private functions
 
     //disable copy constructor - this is a basic concept in Qt Widgets
-    Q_DISABLE_COPY(AdvancedTableView)
+    Q_DISABLE_COPY( AdvancedTableView )
 
     void clearAdvancedTableView();
 
     void setupSignalSlotConnections();
+
+    //the size of the table cells (includes the invisible part)
+    QSize getQTableViewSize();
+
+    QSize getVisibleViewportSize();
 
 //Header Row private functions
 
@@ -178,11 +218,38 @@ private:
 
     int calculateHeaderHeight();
 
+//Footer Row private functions
+
+    //if the layout geometry of the widget container mHeaderRows changed
+    //- new rows added
+    //- columns swapped
+    //this should be called.
+    //it recreates mFooterScrollArea
+    void createFooterLayout();
+
+    void createFooterRow();
+
+    bool verifyFooterIndex( int col, int row );
+
+    void updateFooterRows();
+
+    int calculateFooterHeight();
+
+    void calculateFooterPosition( int visibleViewportHeight );
+
 //general private members
 
     bool mHasVerticalHeader;
 
     bool mPrintDebug;
+
+    //contains the ScrollAreas for Header, Footer etc
+    //and a Spacer for the table
+    //it is used to set the right position for the ScrollAreas
+    QGridLayout* mMarginLayout;
+
+    int mHorizontalHeaderHeight;
+    int mVertiticalHeaderWidth;
 
 //Header Row private members
 
@@ -195,6 +262,18 @@ private:
     int mMarginTopHeight; //height of the QTableView top margin area
 
     QList< int > mHeaderRowHeights; //height of each row
+
+//Footer Row private members
+
+    QGridLayout* mFooterLayout;
+
+    ScrollArea* mFooterScrollArea;
+
+    QList< QList< QWidget* > > mFooterRows; //Container for the Header Row widgets
+
+    int mMarginBottomHeight; //height of the QTableView bottom margin area
+
+    QList< int > mFooterRowHeights; //height of each row
 
 };
 
