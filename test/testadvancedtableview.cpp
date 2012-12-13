@@ -86,6 +86,76 @@ void TestAdvancedTableView::getHeaderWidget()
     //tested in setHeaderWidget()
 }
 
+void TestAdvancedTableView::addFooterRow()
+{
+
+    TableModel myModel( 2, 8 );
+
+    AdvancedTableView* ATV = new AdvancedTableView( false );
+
+    QVERIFY( ATV->addFooterRow() == false );
+
+    ATV->setModel( &myModel );
+
+    QVERIFY( ATV->addFooterRow() == true );
+
+}
+
+void TestAdvancedTableView::getFooterRowCount()
+{
+
+    TableModel myModel( 2, 8 );
+
+    AdvancedTableView* ATV = new AdvancedTableView( false );
+
+    ATV->setModel( &myModel );
+
+    QVERIFY( ATV->getFooterRowCount() == 0 );
+
+    QVERIFY( ATV->addFooterRow() == true );
+
+    QVERIFY( ATV->getFooterRowCount() == 1 );
+
+}
+
+void TestAdvancedTableView::setFooterWidget()
+{
+
+    TableModel myModel( 2, 8 );
+
+    AdvancedTableView* ATV = new AdvancedTableView( false );
+
+    ATV->setModel( &myModel );
+
+    QVERIFY( ATV->addFooterRow() == true );
+
+    QAbstractItemModel* tableModel = ATV->model();
+    int columnCount = tableModel->columnCount();
+
+    for ( int i = 0; i < columnCount; i++ ) {
+
+        QLineEdit* le = new QLineEdit();
+
+        QVERIFY( ATV->setFooterWidget( i, 0, le ) == true );
+
+        //compare pointers
+        QVERIFY( ATV->getFooterWidget( i, 0 ) == le );
+
+    }
+
+    //verify negative and too big column index
+    QWidget* w = ATV->getFooterWidget( 0, 0 );
+    QVERIFY( w != 0 );
+    QVERIFY( ATV->setFooterWidget( -1, 0, w ) == false );
+    QVERIFY( ATV->setFooterWidget( columnCount, 0, w ) == false );
+
+}
+
+void TestAdvancedTableView::getFooterWidget()
+{
+    //tested in setFooterWidget()
+}
+
 void TestAdvancedTableView::setModel()
 {
 

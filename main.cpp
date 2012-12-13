@@ -16,7 +16,7 @@
 //When enabled
 //Unit Tests (TestAdvancedTableView) are executed
 //When the tests are passed AdvancedTableView is executed
-#define RUN_TESTS
+//#define RUN_TESTS
 
 //When enabled TestTableView
 // - a non modified QTableView for testing purposses
@@ -77,6 +77,9 @@ int usageExample( QApplication& a ) {
     //get QTableView column count
     QAbstractItemModel* tableModel =  myView.model();
     int columnCount = tableModel->columnCount();
+
+    //set a corner widget
+    myView.setCornerWidget( new QPushButton() );
 
 //************************
 // Header Row Example
@@ -144,11 +147,11 @@ int usageExample( QApplication& a ) {
 
     //if a widget is not needed you can set a QWidget
     //in this case the widget which was before there (QLineEdit) is deleted!
-    //QWidget* w = new QWidget();
-    //myView.setFooterWidget( 1, 0, w );
+    QWidget* wf = new QWidget();
+    myView.setFooterWidget( 1, 0, wf );
 
     //create another footer row with QPushButtons
-    /*myView.addFooterRow();
+    myView.addFooterRow();
 
     for ( int i = 0; i < columnCount; i++ ) {
 
@@ -158,9 +161,24 @@ int usageExample( QApplication& a ) {
 
         myView.setFooterWidget( i, 1, pb );
 
-    }*/
+    }
+
+    //create another footer row with QPushButtons
+    myView.addFooterRow();
+
+    for ( int i = 0; i < columnCount; i++ ) {
+
+        QPushButton* pb = new QPushButton();
+
+        pb->setText( QString::number( i+1 ) );
+
+        myView.setFooterWidget( i, 2, pb );
+
+    }
 
     myView.show();
+
+    myView.resize( myView.size() );
 
     return a.exec();
 

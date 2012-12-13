@@ -1,12 +1,15 @@
 #include "advancedtableview.h"
 
 #include <QAbstractItemView>
+#include <QPushButton>
 #include <QDebug>
 #include <QFrame>
 #include <QHBoxLayout>
 #include <QHeaderView>
 #include <QLayoutItem>
 #include <QLineEdit>
+#include <QMainWindow>
+#include <QPainter>
 #include <QRect>
 #include <QResizeEvent>
 #include <QRegion>
@@ -71,7 +74,7 @@ QSize AdvancedTableView::ScrollArea::sizeHint() const
 
 AdvancedTableView::AdvancedTableView( QWidget *parent )
     : QTableView( parent ), mHasVerticalHeader(
-          false ), mPrintDebug( false ), mMarginLayout( 0 ), mHorizontalHeaderHeight( 0 ), mVertiticalHeaderWidth( 0 ), mHeaderLayout( NULL ), mHeaderScrollArea( NULL ), mHeaderRows( QList< QList< QWidget* > >() ), mMarginTopHeight(
+          false ), mPrintDebug( false ), mMarginLayout( 0 ), mHorizontalHeaderHeight( 0 ), mVertiticalHeaderWidth( 0 ), mScrollBarCornerWidgetMarginArea( new QFrame() ), mScrollBarCornerWidgetUser( 0), mHeaderLayout( NULL ), mHeaderScrollArea( NULL ), mHeaderRows( QList< QList< QWidget* > >() ), mMarginTopHeight(
           0 ), mHeaderRowHeights( QList<int>() ), mFooterLayout( NULL ), mFooterScrollArea( NULL ), mFooterRows( QList< QList< QWidget* > >() ), mMarginBottomHeight(
           0 ), mFooterRowHeights( QList<int>() )
 {
@@ -92,6 +95,21 @@ AdvancedTableView::AdvancedTableView( QWidget *parent )
     //------------------------------------------
     //mMarginLayout = new QGridLayout( this );
 
+    //QPushButton* t = new QPushButton( this );
+    //mScrollBarCornerWidget = new QFrame();
+
+    //mScrollBarCornerWidget->hide();
+    //QWidget* t = new QWidget();
+    //t->setDisabled();
+    //t->setMaximumWidth(1000);
+    //t->raise();
+    //QAbstractScrollArea::setCornerWidget( mScrollBarCornerWidget );
+
+    mScrollBarCornerWidgetMarginArea->setBackgroundRole( QPalette::Window );
+    mScrollBarCornerWidgetMarginArea->setAutoFillBackground(true);
+    //QAbstractScrollArea::setCornerWidget( mScrollBarCornerWidgetMarginArea );
+
+    //installEventFilter( new AdvancedTableView::EventFilter(this) );
     this->setupSignalSlotConnections();
 
 }
@@ -213,6 +231,14 @@ void AdvancedTableView::createHeaderLayout() {
 
         //create mHeaderScrollArea
         mHeaderScrollArea = new ScrollArea( this );
+
+        //put the widget down in the painting hirarchy
+        //this is needed for the corner widget of QAbstractScrollArea
+        //to paint over mHeaderScrollArea
+        //mHeaderScrollArea->lower();
+
+        mHeaderScrollArea->stackUnder( mScrollBarCornerWidgetMarginArea );
+
 
     } else {
 
@@ -453,11 +479,17 @@ void AdvancedTableView::createFooterLayout() {
         //create mFooterScrollArea
         mFooterScrollArea = new ScrollArea( this );
 
+        //put the widget down in the painting hirarchy
+        //this is needed for the corner widget of QAbstractScrollArea
+        //to paint over mFooterScrollArea
+       //mFooterScrollArea->lower();
+
         //QWidget* container = new QWidget();
         //container->setLayout( mFooterLayout );
         //
         //mMarginLayout->addWidget( mFooterScrollArea, 2, 1 );
 
+        mFooterScrollArea->stackUnder( mScrollBarCornerWidgetMarginArea );
 
     } else {
 
@@ -764,7 +796,7 @@ void AdvancedTableView::updateGeometries()
         //int south = height + mMarginBottomHeight;
         //setViewportMargins( width, 0, 0, south );
 
-        setContentsMargins( 0, 0, 0, 0 );
+        //setContentsMargins( 0, 0, 0, 0 );
 
         //qCritical() << "updateGeometries(); " << north;
 //header
@@ -803,6 +835,73 @@ void AdvancedTableView::updateGeometries()
 
     QTableView::updateGeometries();
     //QTableView::repaint();
+
+}
+
+bool AdvancedTableView::event(QEvent *event)
+{
+
+    QTableView::event(event);
+
+    //catch resize event
+    if (event->type() == QEvent::Resize) {
+        QResizeEvent *resizeEvent = static_cast<QResizeEvent *>(event);
+
+        //check if AdvancedTableView is resized to Margin Area Size
+        QSize oldSize = resizeEvent->oldSize();
+        int oldSizeHeight = oldSize.height();
+        QSize newSize = resizeEvent->size();
+        int newSizeHeight = newSize.height();
+
+        int horizontalScrollBarHeight = 0;
+        if( horizontalScrollBar()->isVisible() ) {
+            horizontalScrollBarHeight = horizontalScrollBar()->height();
+        }
+
+        int marginHeigt = mMarginTopHeight + horizontalHeader()->size().height() + mMarginBottomHeight + horizontalScrollBarHeight;
+
+        if( (oldSizeHeight > marginHeigt) & (newSizeHeight <= marginHeigt) ) {
+            //enter Margin Area Size
+
+            QWidget* cornerWidgetUser = QAbstractScrollArea::cornerWidget();
+
+            //store user scroll bar corner widget
+            if( cornerWidgetUser ) {
+
+                mScrollBarCornerWidgetUser = cornerWidgetUser;
+
+            }
+
+            //set mScrollBarCornerWidgetMarginArea
+            QTableView::setCornerWidget( mScrollBarCornerWidgetMarginArea );
+
+            mFooterScrollArea->stackUnder( mScrollBarCornerWidgetMarginArea );
+            mFooterScrollArea->repaint();
+
+
+            mScrollBarCornerWidgetMarginArea->show();
+
+        }
+
+        if( (oldSizeHeight <= marginHeigt) & (newSizeHeight > marginHeigt) ) {
+            //leave Margin Area Size
+
+            //restore user scroll bar corner widget
+            if( mScrollBarCornerWidgetUser ) {
+
+                QAbstractScrollArea::setCornerWidget( mScrollBarCornerWidgetUser );
+                mScrollBarCornerWidgetUser->show();
+
+            } else {
+
+                //clear
+                //QAbstractScrollArea::setCornerWidget( 0 );
+
+
+            }
+        }
+
+    }
 
 }
 
@@ -1023,7 +1122,16 @@ QWidget* AdvancedTableView::getFooterWidget( int col, int row )
     return mFooterRows[ row ][ col ];
 
 }
+/*
+void AdvancedTableView::resize ( int w, int h ) {
+    qDebug() << "hhh";
+    resize ( w, h );
+}
 
+void AdvancedTableView::resize ( const QSize & s ) {
+    this->resize( s.width(), s.height() );
+}
+*/
 void AdvancedTableView::scrollContentsBy( int dx, int dy )
 {
     //qDebug() << "TableView::scrollContentsBy(" << dx << "," << dy << ")";
@@ -1076,6 +1184,8 @@ void AdvancedTableView::paintEvent( QPaintEvent * event )
 
     }
 
+
+
     QTableView::paintEvent( event );
 
 }
@@ -1091,10 +1201,7 @@ void AdvancedTableView::resizeEvent( QResizeEvent * event ) {
 
             int visibleViewportHeight = event->size().height();
 
-            QSize ts = this->getQTableViewSize();
-
-            qDebug() << visibleViewportHeight << "      " << ts.width();
-            //this->calculateFooterPosition( visibleViewportHeight );
+            this->calculateFooterPosition( visibleViewportHeight );
 
         }
 

@@ -16,6 +16,12 @@ private slots:
     void setHeaderWidget();
     void getHeaderWidget();
 
+    void addFooterRow();
+    void getFooterRowCount();
+
+    void setFooterWidget();
+    void getFooterWidget();
+
     void setModel();
 
     void moveSections();

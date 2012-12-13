@@ -16,7 +16,9 @@
 #define ADVANCEDTABLEVIEW_H
 
 #include <qglobal.h>
+#include <QFrame>
 #include <QGridLayout>
+//#include <QLabel>
 #include <QScrollArea>
 #include <QSize>
 #include <QTableView>
@@ -74,6 +76,30 @@ private:
 
     };
 
+    /**
+     * Scroll Area for the additional Widgets extends QScrollArea
+     *
+     * It is needed to keep the additional Widgets in sync with the QAbstractScrollArea of QTableView.
+     *
+     * @class ScrollArea
+     *
+     */
+    /*class EventFilter : public QObject {
+        Q_OBJECT
+    public:
+        explicit EventFilter(QObject* target) : mTarget(target) {}
+        bool eventFilter(QObject *object, QEvent *event)
+        {
+            if (object == mTarget) {
+                return true;
+
+            }
+            return false;
+        }
+    private:
+        QObject* mTarget;
+    };*/
+
 public:
     /**
      *
@@ -94,6 +120,9 @@ public:
      * The ViewportMargins of the Scroll Areas are set here.
      */
     void updateGeometries();
+
+    //catches QResizeEvent and handels the swapping of an user set Corner Widget with the Margin Area Corner Widget
+    bool event(QEvent *event);
 
 //Header Row Public API Interface
 
@@ -158,6 +187,9 @@ public:
      * @return
     */
     QWidget* getFooterWidget( int col, int row );
+
+    //void resize ( int w, int h );
+    //void resize ( const QSize & s );
 
 public slots:
 
@@ -250,6 +282,9 @@ private:
 
     int mHorizontalHeaderHeight;
     int mVertiticalHeaderWidth;
+
+    QFrame* mScrollBarCornerWidgetMarginArea; //ScrollBarCornerWidget which is shown while only the Margin Area is visible
+    QWidget* mScrollBarCornerWidgetUser; //When the user has set a custom ScrollBarCornerWidget it is temporaly saved here while mScrollBarCornerWidgetMarginArea is visible.
 
 //Header Row private members
 
